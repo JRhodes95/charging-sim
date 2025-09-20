@@ -39,10 +39,16 @@ type ChargerOverrideState = {
   charge: OverrideCharge;
 };
 
+type ChargerSuspendedState = {
+  status: "schedule-suspended";
+  suspendedUntil: Date;
+};
+
 type ChargerState =
   | ChargerIdleState
   | ChargerScheduledState
-  | ChargerOverrideState;
+  | ChargerOverrideState
+  | ChargerSuspendedState;
 
 const startingCharge = 21.0;
 
@@ -100,6 +106,17 @@ export default function Home() {
   const cancelCharge = () => {
     setChargingState({
       status: "idle",
+    });
+  };
+
+  const cancelScheduledCharge = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(6, 0, 0, 0);
+
+    setChargingState({
+      status: "schedule-suspended",
+      suspendedUntil: tomorrow,
     });
   };
 
@@ -162,6 +179,21 @@ export default function Home() {
 
       // Check every second
       const intervalId = setInterval(checkScheduledTime, 1000);
+      return () => clearInterval(intervalId);
+    }
+  }, [chargingState]);
+
+  // Check if schedule suspension has expired
+  useEffect(() => {
+    if (chargingState.status === "schedule-suspended") {
+      const checkSuspension = () => {
+        const now = new Date();
+        if (now >= chargingState.suspendedUntil) {
+          setChargingState({ status: "idle" });
+        }
+      };
+
+      const intervalId = setInterval(checkSuspension, 60000);
       return () => clearInterval(intervalId);
     }
   }, [chargingState]);
@@ -236,6 +268,9 @@ export default function Home() {
                           <Badge>Charging (scheduled)</Badge>
                         ),
                         "charging-override": <Badge>Charging (override)</Badge>,
+                        "schedule-suspended": (
+                          <Badge variant="secondary">Schedule suspended</Badge>
+                        ),
                       }[chargingState.status]
                     }
                   </div>
@@ -298,6 +333,17 @@ export default function Home() {
                         </p>
                       </div>
                     )}
+
+                    {chargingState.status === "schedule-suspended" && (
+                      <div>
+                        <p>
+                          {`Scheduled charging suspended until ${format(
+                            chargingState.suspendedUntil,
+                            "MMM d 'at' h:mm a"
+                          )}`}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-row gap-2">
@@ -311,7 +357,11 @@ export default function Home() {
                       Override
                     </Button>
                     <Button
-                      onClick={cancelCharge}
+                      onClick={
+                        chargingState.status === "charging-scheduled"
+                          ? cancelScheduledCharge
+                          : cancelCharge
+                      }
                       disabled={
                         !(
                           chargingState.status === "charging-override" ||
@@ -319,7 +369,7 @@ export default function Home() {
                         )
                       }
                     >
-                      Cancel
+                      Stop charge
                     </Button>
                   </div>
                 </>
