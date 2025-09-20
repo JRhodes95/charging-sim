@@ -72,7 +72,7 @@ export default function Home() {
 
   const [carState, setCarState] = useState<CarState>({
     model: "Mini Cooper E",
-    nickname: "Herbi-E",
+    nickname: "kEVin",
     stateOfCharge: startingCharge,
   });
 
@@ -97,7 +97,7 @@ export default function Home() {
     });
   };
 
-  const cancelOverride = () => {
+  const cancelCharge = () => {
     setChargingState({
       status: "idle",
     });
@@ -107,7 +107,8 @@ export default function Home() {
     const now = new Date();
 
     // Charge at the start of the next hour
-    const startTime = startOfHour(add(now, { hours: 1 }));
+    // const startTime = startOfHour(add(now, { hours: 1 }));
+    const startTime = add(now, { minutes: 0.1 });
     const chargeDurationSeconds = estimateChargeDurationSeconds(
       carState.stateOfCharge,
       optimalChargePercentage
@@ -146,10 +147,29 @@ export default function Home() {
     chargingState.status,
   ]);
 
+  // Check if the scheduled charge is due
+  useEffect(() => {
+    if (chargingState.status === "awaiting-scheduled-charge") {
+      const checkScheduledTime = () => {
+        const now = new Date();
+        if (now >= chargingState.charge.startTime) {
+          setChargingState({
+            status: "charging-scheduled",
+            charge: chargingState.charge,
+          });
+        }
+      };
+
+      // Check every second
+      const intervalId = setInterval(checkScheduledTime, 1000);
+      return () => clearInterval(intervalId);
+    }
+  }, [chargingState]);
+
   // Charging when in the correct states
   useEffect(() => {
     if (carState.stateOfCharge === maximumChargePercentage) {
-      cancelOverride();
+      cancelCharge();
     }
 
     if (
@@ -235,7 +255,7 @@ export default function Home() {
                         <p>
                           {`Aiming for ${
                             chargingState.charge.targetChargePercent
-                          } by ${format(
+                          }% by ${format(
                             chargingState.charge.endTime,
                             dateFormatString
                           )}`}
@@ -283,13 +303,21 @@ export default function Home() {
                   <div className="flex flex-row gap-2">
                     <Button
                       onClick={triggerOverride}
-                      disabled={chargingState.status === "charging-override"}
+                      disabled={
+                        chargingState.status === "charging-override" ||
+                        chargingState.status === "charging-scheduled"
+                      }
                     >
                       Override
                     </Button>
                     <Button
-                      onClick={cancelOverride}
-                      disabled={chargingState.status !== "charging-override"}
+                      onClick={cancelCharge}
+                      disabled={
+                        !(
+                          chargingState.status === "charging-override" ||
+                          chargingState.status === "charging-scheduled"
+                        )
+                      }
                     >
                       Cancel
                     </Button>
