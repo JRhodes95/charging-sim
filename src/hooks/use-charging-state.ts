@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { add, format } from "date-fns";
 import { toast } from "sonner";
 import { type CarState } from "./use-car-state";
-import { type PlugState } from "./use-plug-state";
 
 export type ScheduledCharge = {
   startTime: Date;
@@ -13,6 +12,10 @@ export type ScheduledCharge = {
 export type OverrideCharge = {
   startTime: Date;
   endTime: Date;
+};
+
+export type ChargerUnpluggedState = {
+  status: "unplugged";
 };
 
 export type ChargerIdleState = {
@@ -35,6 +38,7 @@ export type ChargerSuspendedState = {
 };
 
 export type ChargerState =
+  | ChargerUnpluggedState
   | ChargerIdleState
   | ChargerScheduledState
   | ChargerOverrideState
@@ -54,19 +58,32 @@ export const estimateChargeDurationSeconds = (
 };
 
 type UseChargingStateProps = {
-  plugState: PlugState;
   carState: CarState;
   incrementCharge: () => void;
 };
 
 export function useChargingState({
-  plugState,
   carState,
   incrementCharge,
 }: UseChargingStateProps) {
   const [chargingState, setChargingState] = useState<ChargerState>({
-    status: "idle",
+    status: "unplugged",
   });
+
+  const unplugCar = () => {
+    const wasCharging =
+      chargingState.status === "charging-override" ||
+      chargingState.status === "charging-scheduled";
+    setChargingState({ status: "unplugged" });
+    if (wasCharging) {
+      toast.info("Car unplugged - charging stopped");
+    }
+  };
+
+  const plugInCar = () => {
+    setChargingState({ status: "idle" });
+    toast.success("Car plugged in");
+  };
 
   const triggerOverride = () => {
     const now = new Date();
@@ -119,21 +136,9 @@ export function useChargingState({
     toast.info(`Charging scheduled for ${format(startTime, "p")}`);
   };
 
-  // Handle unplugging during charge
-  useEffect(() => {
-    if (
-      plugState === "unplugged" &&
-      (chargingState.status === "charging-override" ||
-        chargingState.status === "charging-scheduled")
-    ) {
-      cancelOverrideCharge();
-      toast.info("Car unplugged - charging stopped");
-    }
-  }, [plugState, chargingState.status]);
-
   // Schedule a charge when idle
   useEffect(() => {
-    if (plugState === "unplugged") return;
+    if (chargingState.status === "unplugged") return;
 
     const carIsChargedEnough =
       carState.stateOfCharge >= optimalChargePercentage;
@@ -145,7 +150,7 @@ export function useChargingState({
       }, 5000);
       return () => clearTimeout(scheduleId);
     }
-  }, [plugState, carState, chargingState.status]);
+  }, [carState, chargingState.status]);
 
   // Check if the scheduled charge is due
   useEffect(() => {
@@ -200,17 +205,19 @@ export function useChargingState({
     }
 
     if (
-      plugState === "plugged-in" &&
+      chargingState.status !== "unplugged" &&
       (chargingState.status === "charging-override" ||
         chargingState.status === "charging-scheduled")
     ) {
       const chargeId = setInterval(incrementCharge, 1000);
       return () => clearInterval(chargeId);
     }
-  }, [carState.stateOfCharge, chargingState, plugState, incrementCharge]);
+  }, [carState.stateOfCharge, chargingState, incrementCharge]);
 
   return {
     chargingState,
+    unplugCar,
+    plugInCar,
     triggerOverride,
     cancelOverrideCharge,
     cancelScheduledCharge,
