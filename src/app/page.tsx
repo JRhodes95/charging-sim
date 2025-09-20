@@ -76,7 +76,13 @@ export default function Home() {
 
   const unplugCar = () => {
     setPlugState("unplugged");
-    toast.info("Car unplugged");
+    // Cancel any active charging when unplugging
+    if (chargingState.status === "charging-override" || chargingState.status === "charging-scheduled") {
+      setChargingState({ status: "idle" });
+      toast.info("Car unplugged - charging stopped");
+    } else {
+      toast.info("Car unplugged");
+    }
   };
   const plugInCar = () => {
     setPlugState("plugged-in");
@@ -213,6 +219,12 @@ export default function Home() {
 
   // Charging when in the correct states
   useEffect(() => {
+    // Stop charging if car is unplugged
+    if (plugState === "unplugged" && (chargingState.status === "charging-override" || chargingState.status === "charging-scheduled")) {
+      cancelCharge();
+      return;
+    }
+
     if (carState.stateOfCharge === maximumChargePercentage) {
       toast.success("Charging complete - 100% charged!");
       cancelCharge();
@@ -225,13 +237,14 @@ export default function Home() {
     }
 
     if (
-      chargingState.status === "charging-override" ||
-      chargingState.status === "charging-scheduled"
+      plugState === "plugged-in" &&
+      (chargingState.status === "charging-override" ||
+      chargingState.status === "charging-scheduled")
     ) {
       const chargeId = setInterval(incrementCharge, 1000);
       return () => clearInterval(chargeId);
     }
-  }, [carState.stateOfCharge, chargingState]);
+  }, [carState.stateOfCharge, chargingState, plugState]);
 
   return (
     <div className="space-y-6 p-4">
