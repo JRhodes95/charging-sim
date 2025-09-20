@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { add, format } from "date-fns";
+import { add, format, startOfHour } from "date-fns";
 
 import { useEffect, useState } from "react";
 
@@ -44,11 +44,24 @@ type ChargerState =
   | ChargerScheduledState
   | ChargerOverrideState;
 
-const OVERRIDE_TIMER_DURATION = { minutes: 60 };
+const startingCharge = 21.0;
+
+const overrideTimerDuration = { minutes: 60 };
 const dateFormatString = "p";
+const optimalChargePercentage = 85.0;
+const maximumChargePercentage = 100.0;
+const chargeRatePerSecond = 0.1;
 
 const formatChargePercentage = (input: number) => {
   return input.toFixed(1);
+};
+
+const estimateChargeDurationSeconds = (
+  currentChargePercent: number,
+  targetChargePercent: number
+) => {
+  const chargeDifference = targetChargePercent - currentChargePercent;
+  return chargeDifference / chargeRatePerSecond;
 };
 
 export default function Home() {
@@ -60,13 +73,13 @@ export default function Home() {
   const [carState, setCarState] = useState<CarState>({
     model: "Mini Cooper E",
     nickname: "Herbi-E",
-    stateOfCharge: 69.0,
+    stateOfCharge: startingCharge,
   });
 
   const incrementCharge = () =>
     setCarState((current) => ({
       ...current,
-      stateOfCharge: current.stateOfCharge + 0.1,
+      stateOfCharge: current.stateOfCharge + chargeRatePerSecond,
     }));
 
   const [chargingState, setChargingState] = useState<ChargerState>({
@@ -79,7 +92,7 @@ export default function Home() {
       status: "charging-override",
       charge: {
         startTime: now,
-        endTime: add(now, OVERRIDE_TIMER_DURATION),
+        endTime: add(now, overrideTimerDuration),
       },
     });
   };
@@ -90,7 +103,55 @@ export default function Home() {
     });
   };
 
+  const scheduleCharge = () => {
+    const now = new Date();
+
+    // Charge at the start of the next hour
+    const startTime = startOfHour(add(now, { hours: 1 }));
+    const chargeDurationSeconds = estimateChargeDurationSeconds(
+      carState.stateOfCharge,
+      optimalChargePercentage
+    );
+    const endTime = add(startTime, { seconds: chargeDurationSeconds });
+
+    setChargingState({
+      status: "awaiting-scheduled-charge",
+      charge: {
+        startTime,
+        endTime,
+        targetChargePercent: optimalChargePercentage,
+      },
+    });
+  };
+
+  // Schedule a charge when idle
   useEffect(() => {
+    if (plugState === "unplugged") return;
+
+    const carIsChargedEnough =
+      carState.stateOfCharge >= optimalChargePercentage;
+    if (carIsChargedEnough) return;
+
+    if (chargingState.status === "idle") {
+      const scheduleId = setTimeout(() => {
+        scheduleCharge();
+      }, 5000);
+      return () => clearTimeout(scheduleId);
+    }
+  }, [
+    plugState,
+    scheduleCharge,
+    carState.stateOfCharge,
+    optimalChargePercentage,
+    chargingState.status,
+  ]);
+
+  // Charging when in the correct states
+  useEffect(() => {
+    if (carState.stateOfCharge === maximumChargePercentage) {
+      cancelOverride();
+    }
+
     if (
       chargingState.status === "charging-override" ||
       chargingState.status === "charging-scheduled"
@@ -98,7 +159,7 @@ export default function Home() {
       const chargeId = setInterval(incrementCharge, 1000);
       return () => clearInterval(chargeId);
     }
-  }, [chargingState]);
+  }, [carState.stateOfCharge, chargingState]);
 
   return (
     <div className="space-y-6 p-4">
