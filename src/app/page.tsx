@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { add, format, startOfHour } from "date-fns";
+import { toast } from "sonner";
 
 import { useEffect, useState } from "react";
 
@@ -73,8 +74,14 @@ const estimateChargeDurationSeconds = (
 export default function Home() {
   const [plugState, setPlugState] = useState<PlugState>("unplugged");
 
-  const unplugCar = () => setPlugState("unplugged");
-  const plugInCar = () => setPlugState("plugged-in");
+  const unplugCar = () => {
+    setPlugState("unplugged");
+    toast.info("Car unplugged");
+  };
+  const plugInCar = () => {
+    setPlugState("plugged-in");
+    toast.success("Car plugged in");
+  };
 
   const [carState, setCarState] = useState<CarState>({
     model: "Mini Cooper E",
@@ -101,12 +108,14 @@ export default function Home() {
         endTime: add(now, overrideTimerDuration),
       },
     });
+    toast.success("Override charging started");
   };
 
   const cancelCharge = () => {
     setChargingState({
       status: "idle",
     });
+    toast.info("Charging stopped");
   };
 
   const cancelScheduledCharge = () => {
@@ -118,6 +127,7 @@ export default function Home() {
       status: "schedule-suspended",
       suspendedUntil: tomorrow,
     });
+    toast.warning("Scheduled charging suspended until tomorrow 6 AM");
   };
 
   const scheduleCharge = () => {
@@ -140,6 +150,7 @@ export default function Home() {
         targetChargePercent: optimalChargePercentage,
       },
     });
+    toast.info(`Charging scheduled for ${format(startTime, "p")}`);
   };
 
   // Schedule a charge when idle
@@ -174,6 +185,7 @@ export default function Home() {
             status: "charging-scheduled",
             charge: chargingState.charge,
           });
+          toast.success("Scheduled charging started");
         }
       };
 
@@ -190,6 +202,7 @@ export default function Home() {
         const now = new Date();
         if (now >= chargingState.suspendedUntil) {
           setChargingState({ status: "idle" });
+          toast.info("Schedule suspension expired - charging can be scheduled again");
         }
       };
 
@@ -201,6 +214,13 @@ export default function Home() {
   // Charging when in the correct states
   useEffect(() => {
     if (carState.stateOfCharge === maximumChargePercentage) {
+      toast.success("Charging complete - 100% charged!");
+      cancelCharge();
+    } else if (
+      chargingState.status === "charging-scheduled" &&
+      carState.stateOfCharge >= chargingState.charge.targetChargePercent
+    ) {
+      toast.success(`Target charge of ${chargingState.charge.targetChargePercent}% reached!`);
       cancelCharge();
     }
 
