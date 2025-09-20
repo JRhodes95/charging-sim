@@ -3,8 +3,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { add, format } from "date-fns";
-import Image from "next/image";
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
 
 type PlugState = "unplugged" | "plugged-in";
 
@@ -63,6 +63,12 @@ export default function Home() {
     stateOfCharge: 69.0,
   });
 
+  const incrementCharge = () =>
+    setCarState((current) => ({
+      ...current,
+      stateOfCharge: current.stateOfCharge + 0.1,
+    }));
+
   const [chargingState, setChargingState] = useState<ChargerState>({
     status: "idle",
   });
@@ -83,6 +89,16 @@ export default function Home() {
       status: "idle",
     });
   };
+
+  useEffect(() => {
+    if (
+      chargingState.status === "charging-override" ||
+      chargingState.status === "charging-scheduled"
+    ) {
+      const chargeId = setInterval(incrementCharge, 1000);
+      return () => clearInterval(chargeId);
+    }
+  }, [chargingState]);
 
   return (
     <div className="space-y-6 p-4">
