@@ -10,7 +10,11 @@ import { useChargingState } from "@/hooks/use-charging-state";
 const dateFormatString = "p";
 
 export default function Home() {
-  const { carState, incrementCharge } = useCarState();
+  const { carState, incrementCharge } = useCarState({
+    model: "Mini Cooper E",
+    nickname: "kEVin",
+    stateOfCharge: 21.0,
+  });
   const {
     chargingState,
     unplugCar,
