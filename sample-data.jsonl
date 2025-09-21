@@ -1,0 +1,10 @@
+{"model": "Mini Cooper E", "nickname": "kEVin", "stateOfCharge": 21.0, "batteryCapacity": 32.6, "chargingRate": 7.4, "location": "Home", "lastUpdated": "2025-01-21T10:30:00Z"}
+{"model": "Tesla Model 3", "nickname": "Lightning", "stateOfCharge": 67.5, "batteryCapacity": 75.0, "chargingRate": 11.0, "location": "Supercharger Station", "lastUpdated": "2025-01-21T11:15:00Z"}
+{"model": "Nissan Leaf", "nickname": "Leafy", "stateOfCharge": 85.2, "batteryCapacity": 40.0, "chargingRate": 6.6, "location": "Work", "lastUpdated": "2025-01-21T08:45:00Z"}
+{"model": "BMW i3", "nickname": "Sparky", "stateOfCharge": 42.8, "batteryCapacity": 33.0, "chargingRate": 7.2, "location": "Shopping Mall", "lastUpdated": "2025-01-21T14:20:00Z"}
+{"model": "Volkswagen ID.4", "nickname": "VDub", "stateOfCharge": 93.1, "batteryCapacity": 77.0, "chargingRate": 11.0, "location": "Home", "lastUpdated": "2025-01-21T07:30:00Z"}
+{"model": "Audi e-tron", "nickname": "Electro", "stateOfCharge": 56.7, "batteryCapacity": 95.0, "chargingRate": 11.0, "location": "Office", "lastUpdated": "2025-01-21T12:00:00Z"}
+{"model": "Hyundai Kona Electric", "nickname": "Kona", "stateOfCharge": 78.3, "batteryCapacity": 64.0, "chargingRate": 7.2, "location": "Public Charger", "lastUpdated": "2025-01-21T16:45:00Z"}
+{"model": "Polestar 2", "nickname": "Polar", "stateOfCharge": 34.9, "batteryCapacity": 78.0, "chargingRate": 11.0, "location": "Apartment Complex", "lastUpdated": "2025-01-21T09:15:00Z"}
+{"model": "Ford Mustang Mach-E", "nickname": "Mustang", "stateOfCharge": 61.4, "batteryCapacity": 88.0, "chargingRate": 10.5, "location": "Fast Charging Station", "lastUpdated": "2025-01-21T13:30:00Z"}
+{"model": "Chevrolet Bolt EV", "nickname": "Bolt", "stateOfCharge": 89.6, "batteryCapacity": 65.0, "chargingRate": 7.2, "location": "Home", "lastUpdated": "2025-01-21T06:00:00Z"}
