@@ -2,7 +2,11 @@ import { useReducer, useEffect } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { type CarState } from "./use-car-state";
-import { chargingStatesReducer, type ChargingAction } from "./charging-states-reducer";
+import {
+  chargingStatesReducer,
+  type ChargingAction,
+  type ChargingStateWithEvents,
+} from "./charging-states-reducer";
 
 export type ScheduledCharge = {
   startTime: Date;
@@ -60,9 +64,12 @@ export function useChargingState({
   carState,
   incrementCharge,
 }: UseChargingStateProps) {
-  const [chargingState, dispatch] = useReducer(chargingStatesReducer, {
-    status: "unplugged",
-  });
+  const [state, dispatch] = useReducer(chargingStatesReducer, {
+    chargerState: { status: "unplugged" },
+    eventHistory: [],
+  } as ChargingStateWithEvents);
+
+  const chargingState = state.chargerState;
 
   const unplugCar = () => {
     const wasCharging =
@@ -193,6 +200,7 @@ export function useChargingState({
 
   return {
     chargingState,
+    eventHistory: state.eventHistory,
     unplugCar,
     plugInCar,
     triggerOverride,

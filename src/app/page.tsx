@@ -1,13 +1,33 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { Plug, Zap, History } from "lucide-react";
 
 import { useCarState, formatChargePercentage } from "@/hooks/use-car-state";
 import { useChargingState } from "@/hooks/use-charging-state";
+import { ChargingTimeline } from "@/components/charging-timeline";
 
 const dateFormatString = "p";
+
+const getChargingRate = (status: string) => {
+  if (status === "charging-override" || status === "charging-scheduled") {
+    return 7.4; // kW
+  }
+  return 0;
+};
+
+const estimateTimeRemaining = (
+  currentCharge: number,
+  targetCharge: number,
+  chargingRate: number
+) => {
+  if (chargingRate === 0) return null;
+  const remainingCharge = targetCharge - currentCharge;
+  const batteryCapacity = 32.6; // kWh for Mini Cooper E
+  const timeHours = ((remainingCharge / 100) * batteryCapacity) / chargingRate;
+  return Math.max(0, timeHours * 60); // minutes
+};
 
 export default function Home() {
   const { carState, incrementCharge } = useCarState({
@@ -15,8 +35,10 @@ export default function Home() {
     nickname: "kEVin",
     stateOfCharge: 21.0,
   });
+
   const {
     chargingState,
+    eventHistory,
     unplugCar,
     plugInCar,
     triggerOverride,
@@ -24,172 +46,227 @@ export default function Home() {
     cancelScheduledCharge,
   } = useChargingState({ carState, incrementCharge });
 
+  const chargingRate = getChargingRate(chargingState.status);
+  const targetCharge =
+    chargingState.status === "charging-scheduled" ||
+    chargingState.status === "awaiting-scheduled-charge"
+      ? chargingState.charge?.targetChargePercent || 85
+      : 100;
+  const timeRemaining = estimateTimeRemaining(
+    carState.stateOfCharge,
+    targetCharge,
+    chargingRate
+  );
+
+  const isCharging =
+    chargingState.status === "charging-override" ||
+    chargingState.status === "charging-scheduled";
+  const isConnected = chargingState.status !== "unplugged";
+
   return (
-    <div className="space-y-6 p-4">
-      <h1 className="text-xl font-bold">Charge control panel</h1>
-      <div className="space-y-8">
-        <div className="space-y-4 bg-secondary p-4 rounded shadow">
-          <h2 className="text-l font-bold">Charger state</h2>
-          <div className="space-y-2">
-            <div className="flex flex-row gap-2">
-              <div>Status:</div>
-              {chargingState.status === "unplugged" ? (
-                <Badge variant={"outline"}>Unplugged</Badge>
-              ) : (
-                <Badge variant={"default"}>Plugged in</Badge>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-12">
+          <div>
+            <h1 className="text-4xl font-bold text-foreground mb-2">
+              {carState.nickname}
+            </h1>
+            <p className="text-muted-foreground text-lg">{carState.model}</p>
+          </div>
+          <Button
+            variant={isConnected ? "outline" : "default"}
+            onClick={isConnected ? unplugCar : plugInCar}
+            size="lg"
+          >
+            <Plug className="w-4 h-4 mr-2" />
+            {isConnected ? "Unplug" : "Plug in"}
+          </Button>
+        </div>
+
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          {/* Left: Battery & Status */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Battery Level */}
+            <div>
+              <div className="flex items-end gap-3 mb-4">
+                <span className="text-6xl font-bold text-foreground">
+                  {formatChargePercentage(carState.stateOfCharge)}
+                </span>
+                <span className="text-2xl text-muted-foreground mb-2">%</span>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="relative mb-6">
+                <div className="w-full h-2 bg-muted rounded-full">
+                  <div
+                    className={`h-full rounded-full transition-all duration-1000 ${
+                      isCharging
+                        ? "bg-charging"
+                        : carState.stateOfCharge > 80
+                        ? "bg-success"
+                        : carState.stateOfCharge > 50
+                        ? "bg-warning"
+                        : "bg-destructive"
+                    }`}
+                    style={{
+                      width: `${Math.min(carState.stateOfCharge, 100)}%`,
+                    }}
+                  />
+                </div>
+                {targetCharge !== 100 && (
+                  <div
+                    className="absolute top-0 w-0.5 h-2 bg-muted-foreground"
+                    style={{ left: `${targetCharge}%` }}
+                  />
+                )}
+              </div>
+
+              {/* Connection Status */}
+              <div className="flex items-center gap-3 mb-6">
+                <Plug
+                  className={`w-5 h-5 ${
+                    isConnected ? "text-success" : "text-muted-foreground"
+                  }`}
+                />
+                <span className="text-foreground font-medium">
+                  {isConnected ? "Connected" : "Disconnected"}
+                </span>
+                {isConnected && (
+                  <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
+                )}
+              </div>
+
+              {/* Charging Info */}
+              {isCharging && (
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-1">
+                      Charging Rate
+                    </div>
+                    <div className="text-xl font-semibold text-foreground">
+                      {chargingRate} kW
+                    </div>
+                  </div>
+                  {timeRemaining && (
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-1">
+                        Time Remaining
+                      </div>
+                      <div className="text-xl font-semibold text-foreground">
+                        {Math.floor(timeRemaining / 60)}h{" "}
+                        {Math.floor(timeRemaining % 60)}m
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
-            <div className="flex flex-row gap-2">
-              <Button
-                variant={"outline"}
-                onClick={unplugCar}
-                disabled={chargingState.status === "unplugged"}
-              >
-                Unplug
-              </Button>
-              <Button
-                onClick={plugInCar}
-                disabled={chargingState.status !== "unplugged"}
-              >
-                Plug in
-              </Button>
-            </div>
-          </div>
-        </div>
 
-        <div className="space-y-1">
-          <h2 className="text-l font-bold">Car state</h2>
-          <div>{carState.nickname}</div>
-          <div>{carState.model}</div>
-          <div>
-            SoC: {formatChargePercentage(carState.stateOfCharge)}% charged
-          </div>
-        </div>
-        <div className="space-y-1">
-          <h2 className="text-l font-bold">Charging state</h2>
-          {chargingState.status === "unplugged" ? (
-            "Charging state not available while car is unplugged"
-          ) : (
-            <>
-              <div className="flex flex-row gap-2">
-                <div>Status:</div>
-                {
-                  {
-                    idle: <Badge>Idle</Badge>,
-                    "awaiting-scheduled-charge": <Badge>Waiting</Badge>,
-                    "charging-scheduled": <Badge>Charging (scheduled)</Badge>,
-                    "charging-override": <Badge>Charging (override)</Badge>,
-                    "schedule-suspended": (
-                      <Badge variant="secondary">Schedule suspended</Badge>
-                    ),
-                  }[
-                    chargingState.status as Exclude<
-                      typeof chargingState.status,
-                      "unplugged"
-                    >
-                  ]
-                }
-              </div>
-              <div>
-                {chargingState.status === "idle" && (
-                  <div>Not much to see here!</div>
-                )}
+            {/* Status Message */}
+            {isConnected && (
+              <div className="py-6 border-t border-border">
+                <div className="flex items-center gap-3 mb-2">
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      isCharging
+                        ? "bg-charging animate-pulse"
+                        : chargingState.status === "awaiting-scheduled-charge"
+                        ? "bg-warning"
+                        : chargingState.status === "schedule-suspended"
+                        ? "bg-destructive"
+                        : "bg-muted-foreground"
+                    }`}
+                  />
+                  <span className="font-medium text-foreground">
+                    {
+                      {
+                        idle: "Ready to charge",
+                        "awaiting-scheduled-charge":
+                          "Scheduled charging pending",
+                        "charging-scheduled": "Charging (Scheduled)",
+                        "charging-override": "Charging (Manual)",
+                        "schedule-suspended": "Schedule suspended",
+                      }[
+                        chargingState.status as Exclude<
+                          typeof chargingState.status,
+                          "unplugged"
+                        >
+                      ]
+                    }
+                  </span>
+                </div>
 
                 {chargingState.status === "awaiting-scheduled-charge" && (
-                  <div>
-                    <p>
-                      {`Charge scheduled for ${format(
-                        chargingState.charge.startTime,
-                        dateFormatString
-                      )}.`}
-                    </p>
-                    <p>
-                      {`Aiming for ${
-                        chargingState.charge.targetChargePercent
-                      }% by ${format(
-                        chargingState.charge.endTime,
-                        dateFormatString
-                      )}`}
-                    </p>
-                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Scheduled start:{" "}
+                    {format(chargingState.charge.startTime, dateFormatString)} •
+                    Target: {chargingState.charge.targetChargePercent}%
+                  </p>
                 )}
 
-                {chargingState.status === "charging-scheduled" && (
-                  <div>
-                    <p>
-                      {`Charging since ${format(
-                        chargingState.charge.startTime,
-                        dateFormatString
-                      )}.`}
-                    </p>
-                    <p>
-                      {`Aiming for ${
-                        chargingState.charge.targetChargePercent
-                      } by ${format(
-                        chargingState.charge.endTime,
-                        dateFormatString
-                      )}`}
-                    </p>
-                  </div>
-                )}
-
-                {chargingState.status === "charging-override" && (
-                  <div>
-                    <p>
-                      {`Charging since ${format(
-                        chargingState.charge.startTime,
-                        dateFormatString
-                      )}.`}
-                    </p>
-                    <p>
-                      {`Charging override active until ${format(
-                        chargingState.charge.endTime,
-                        dateFormatString
-                      )}`}
-                    </p>
-                  </div>
+                {(chargingState.status === "charging-scheduled" ||
+                  chargingState.status === "charging-override") && (
+                  <p className="text-sm text-muted-foreground">
+                    Started:{" "}
+                    {format(chargingState.charge.startTime, dateFormatString)}
+                    {chargingState.status === "charging-scheduled" && (
+                      <>
+                        {" "}
+                        • Target: {chargingState.charge.targetChargePercent}%
+                      </>
+                    )}
+                  </p>
                 )}
 
                 {chargingState.status === "schedule-suspended" && (
-                  <div>
-                    <p>
-                      {`Scheduled charging suspended until ${format(
-                        chargingState.suspendedUntil,
-                        "MMM d 'at' h:mm a"
-                      )}`}
-                    </p>
-                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Suspended until:{" "}
+                    {format(chargingState.suspendedUntil, "MMM d 'at' h:mm a")}
+                  </p>
                 )}
               </div>
+            )}
 
-              <div className="flex flex-row gap-2">
+            {/* Controls */}
+            {isConnected && (
+              <div className="flex gap-3 pt-6 border-t border-border">
                 <Button
                   onClick={triggerOverride}
-                  disabled={
-                    chargingState.status === "charging-override" ||
-                    chargingState.status === "charging-scheduled"
-                  }
+                  disabled={isCharging}
+                  size="lg"
                 >
-                  Override
+                  <Zap className="w-4 h-4 mr-2" />
+                  Start Charging
                 </Button>
-                <Button
-                  onClick={
-                    chargingState.status === "charging-scheduled"
-                      ? cancelScheduledCharge
-                      : cancelOverrideCharge
-                  }
-                  disabled={
-                    !(
-                      chargingState.status === "charging-override" ||
+
+                {isCharging && (
+                  <Button
+                    onClick={
                       chargingState.status === "charging-scheduled"
-                    )
-                  }
-                >
-                  Stop charge
-                </Button>
+                        ? cancelScheduledCharge
+                        : cancelOverrideCharge
+                    }
+                    variant="outline"
+                    size="lg"
+                  >
+                    Stop Charging
+                  </Button>
+                )}
               </div>
-            </>
-          )}
+            )}
+          </div>
+
+          {/* Right: Timeline */}
+          <div>
+            <div className="flex items-center gap-2 mb-6">
+              <h2 className="text-xl font-semibold text-foreground">
+                Recent Activity
+              </h2>
+            </div>
+            <ChargingTimeline events={eventHistory} />
+          </div>
         </div>
       </div>
     </div>
