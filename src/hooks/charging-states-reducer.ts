@@ -8,7 +8,7 @@ export type ChargingEvent = {
   type: "connection" | "charging" | "schedule" | "override" | "completion";
   action: string;
   description: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 };
 
 export type ChargingStateWithEvents = {
@@ -42,7 +42,7 @@ const createEvent = (
   action: string,
   description: string,
   timestamp: Date = new Date(),
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 ): ChargingEvent => ({
   id: `${timestamp.getTime()}-${Math.random().toString(36).substr(2, 9)}`,
   timestamp,

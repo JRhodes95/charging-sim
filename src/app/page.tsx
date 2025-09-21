@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Plug, Zap, History } from "lucide-react";
+import { Plug, Zap } from "lucide-react";
 
 import { useCarState, formatChargePercentage } from "@/hooks/use-car-state";
 import { useChargingState } from "@/hooks/use-charging-state";

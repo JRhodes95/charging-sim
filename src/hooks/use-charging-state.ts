@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { type CarState } from "./use-car-state";
 import {
   chargingStatesReducer,
-  type ChargingAction,
   type ChargingStateWithEvents,
 } from "./charging-states-reducer";
 

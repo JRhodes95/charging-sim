@@ -6,7 +6,6 @@ import {
   Plug,
   Zap,
   Clock,
-  Target,
   StopCircle,
   PlayCircle,
   AlertTriangle,
@@ -94,23 +93,23 @@ export function ChargingTimeline({
 
                 {/* Event details */}
                 {event.details &&
-                  (event.details.targetCharge ||
-                    event.details.currentCharge) && (
+                  (typeof event.details.targetCharge === 'number' ||
+                    typeof event.details.currentCharge === 'number') && (
                     <div className="mt-2">
                       <div className="text-xs text-muted-foreground">
-                        {event.details.currentCharge &&
-                          event.details.targetCharge && (
+                        {typeof event.details.currentCharge === 'number' &&
+                          typeof event.details.targetCharge === 'number' && (
                             <span>
                               {event.details.currentCharge.toFixed(1)}% →{" "}
                               {event.details.targetCharge}%
                             </span>
                           )}
-                        {event.details.endTime && (
+                        {event.details.endTime && typeof event.details.endTime === 'object' && event.details.endTime instanceof Date ? (
                           <span className="ml-2">
                             until{" "}
-                            {format(new Date(event.details.endTime), "h:mm a")}
+                            {format(event.details.endTime, "h:mm a")}
                           </span>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   )}
