@@ -20,13 +20,23 @@ const getChargingRate = (status: string) => {
 const estimateTimeRemaining = (
   currentCharge: number,
   targetCharge: number,
-  chargingRate: number
+  chargingRate: number,
+  endTime?: Date
 ) => {
   if (chargingRate === 0) return null;
+
+  // For override charging, use the actual endTime instead of calculating based on target charge
+  if (endTime) {
+    const now = new Date();
+    const remainingMs = endTime.getTime() - now.getTime();
+    return Math.max(0, remainingMs / (1000 * 60)); // minutes
+  }
+
+  // Use the actual simulation charge rate (0.1% per second) instead of kW calculation
   const remainingCharge = targetCharge - currentCharge;
-  const batteryCapacity = 32.6; // kWh for Mini Cooper E
-  const timeHours = ((remainingCharge / 100) * batteryCapacity) / chargingRate;
-  return Math.max(0, timeHours * 60); // minutes
+  const chargeRatePerSecond = 0.1; // Must match the rate in use-car-state.ts
+  const timeSeconds = remainingCharge / chargeRatePerSecond;
+  return Math.max(0, timeSeconds / 60); // minutes
 };
 
 export default function Home() {
@@ -55,7 +65,8 @@ export default function Home() {
   const timeRemaining = estimateTimeRemaining(
     carState.stateOfCharge,
     targetCharge,
-    chargingRate
+    chargingRate,
+    chargingState.status === "charging-override" ? chargingState.charge.endTime : undefined
   );
 
   const isCharging =

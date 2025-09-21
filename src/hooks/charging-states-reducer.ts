@@ -1,4 +1,4 @@
-import { add } from "date-fns";
+import { add, addDays, getTime, setHours, startOfDay } from "date-fns";
 import type { ChargerState } from "./use-charging-state";
 import type { CarState } from "./use-car-state";
 
@@ -44,7 +44,7 @@ const createEvent = (
   timestamp: Date = new Date(),
   details?: Record<string, unknown>
 ): ChargingEvent => ({
-  id: `${timestamp.getTime()}-${Math.random().toString(36).substr(2, 9)}`,
+  id: `${getTime(timestamp)}-${Math.random().toString(36).substring(2, 11)}`,
   timestamp,
   type,
   action,
@@ -140,9 +140,10 @@ export function chargingStatesReducer(
     }
 
     case "CANCEL_SCHEDULED_CHARGE": {
-      const tomorrow = new Date(action.timestamp);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(6, 0, 0, 0);
+      const tomorrow = setHours(
+        startOfDay(addDays(action.timestamp, 1)),
+        6
+      );
 
       const newChargerState = {
         status: "schedule-suspended" as const,
