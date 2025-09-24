@@ -6,6 +6,7 @@ import { Plug, Zap } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { ChargingTimeline } from "@/components/charging-timeline";
+import { useParams, useSearchParams } from "next/navigation";
 const dateFormatString = "p";
 
 const getChargingRate = (status: string) => {
@@ -31,17 +32,20 @@ const formatChargePercentage = (input: number) => {
   return input.toFixed(1);
 };
 
-export default function VehicleDetail({ params }: { params: { slug: string } }) {
-  const vehicle = useQuery(api.vehicles.getBySlug, { slug: params.slug });
+export default function VehicleDetail() {
+  const { slug } = useParams<{ slug: string }>();
+  const vehicle = useQuery(api.vehicles.getBySlug, { slug });
   const chargingEvents = useQuery(api.vehicles.getChargingEvents, {
-    vehicleId: vehicle?._id
+    vehicleId: vehicle?._id,
   });
 
   if (!vehicle) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-2">Loading...</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            Loading...
+          </h1>
           <p className="text-muted-foreground">Fetching vehicle data</p>
         </div>
       </div>
@@ -51,9 +55,12 @@ export default function VehicleDetail({ params }: { params: { slug: string } }) 
   // Mock charging state based on latest events - in a real app this would be more sophisticated
   const latestEvent = chargingEvents?.[0];
   const isConnected = latestEvent?.type === "connection"; // Simplified logic
-  const isCharging = latestEvent?.type === "charging" || latestEvent?.type === "override";
+  const isCharging =
+    latestEvent?.type === "charging" || latestEvent?.type === "override";
 
-  const chargingRate = getChargingRate(isCharging ? "charging-override" : "idle");
+  const chargingRate = getChargingRate(
+    isCharging ? "charging-override" : "idle"
+  );
   const targetCharge = latestEvent?.details?.target_charge || 85;
   const timeRemaining = estimateTimeRemaining(
     vehicle.stateOfCharge || 0,
@@ -65,8 +72,8 @@ export default function VehicleDetail({ params }: { params: { slug: string } }) 
   const currentStatus = isCharging
     ? "charging-override"
     : isConnected
-    ? "idle"
-    : "unplugged";
+      ? "idle"
+      : "unplugged";
 
   return (
     <div className="min-h-screen bg-background">
@@ -110,10 +117,10 @@ export default function VehicleDetail({ params }: { params: { slug: string } }) 
                       isCharging
                         ? "bg-charging"
                         : (vehicle.stateOfCharge || 0) > 80
-                        ? "bg-success"
-                        : (vehicle.stateOfCharge || 0) > 50
-                        ? "bg-warning"
-                        : "bg-destructive"
+                          ? "bg-success"
+                          : (vehicle.stateOfCharge || 0) > 50
+                            ? "bg-warning"
+                            : "bg-destructive"
                     }`}
                     style={{
                       width: `${Math.min(vehicle.stateOfCharge || 0, 100)}%`,
@@ -226,7 +233,11 @@ export default function VehicleDetail({ params }: { params: { slug: string } }) 
             {/* Last Updated */}
             {vehicle.lastUpdated && (
               <div className="text-sm text-muted-foreground pt-6 border-t border-border">
-                Last updated: {format(new Date(vehicle.lastUpdated), "MMM d, yyyy 'at' h:mm a")}
+                Last updated:{" "}
+                {format(
+                  new Date(vehicle.lastUpdated),
+                  "MMM d, yyyy 'at' h:mm a"
+                )}
               </div>
             )}
           </div>
