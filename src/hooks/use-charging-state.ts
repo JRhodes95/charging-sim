@@ -7,52 +7,9 @@ import {
   type ChargingStateWithEvents,
 } from "./charging-states-reducer";
 
-export type ScheduledCharge = {
-  startTime: Date;
-  endTime: Date;
-  targetChargePercent: number;
-};
-
-export type OverrideCharge = {
-  startTime: Date;
-  endTime: Date;
-};
-
-export type ChargerUnpluggedState = {
-  status: "unplugged";
-};
-
-export type ChargerIdleState = {
-  status: "idle";
-};
-
-export type ChargerScheduledState = {
-  status: "awaiting-scheduled-charge" | "charging-scheduled";
-  charge: ScheduledCharge;
-};
-
-export type ChargerOverrideState = {
-  status: "charging-override";
-  charge: OverrideCharge;
-};
-
-export type ChargerSuspendedState = {
-  status: "schedule-suspended";
-  suspendedUntil: Date;
-};
-
-export type ChargerState =
-  | ChargerUnpluggedState
-  | ChargerIdleState
-  | ChargerScheduledState
-  | ChargerOverrideState
-  | ChargerSuspendedState;
-
 const optimalChargePercentage = 85.0;
 const maximumChargePercentage = 100.0;
 
-// Re-export from reducer for backwards compatibility
-export { estimateChargeDurationSeconds } from "./charging-states-reducer";
 
 type UseChargingStateProps = {
   carState: CarState;
@@ -75,7 +32,7 @@ export function useChargingState({
       chargingState.status === "charging-override" ||
       chargingState.status === "charging-scheduled";
 
-    dispatch({ type: "UNPLUG_CAR" });
+    dispatch({ type: "UNPLUG_CAR", timestamp: new Date() });
 
     if (wasCharging) {
       toast.info("Car unplugged - charging stopped");
@@ -83,7 +40,7 @@ export function useChargingState({
   };
 
   const plugInCar = () => {
-    dispatch({ type: "PLUG_IN_CAR" });
+    dispatch({ type: "PLUG_IN_CAR", timestamp: new Date() });
     toast.success("Car plugged in");
   };
 
@@ -97,7 +54,7 @@ export function useChargingState({
   };
 
   const cancelOverrideCharge = () => {
-    dispatch({ type: "CANCEL_OVERRIDE_CHARGE" });
+    dispatch({ type: "CANCEL_OVERRIDE_CHARGE", timestamp: new Date() });
     toast.info("Charging stopped");
   };
 
@@ -124,10 +81,11 @@ export function useChargingState({
 
   // Schedule a charge when idle
   useEffect(() => {
-    if (chargingState.status === "unplugged") return;
-
     const carIsChargedEnough =
       carState.stateOfCharge >= optimalChargePercentage;
+
+    if (chargingState.status === "unplugged" || carIsChargedEnough) return;
+
     if (carIsChargedEnough) return;
 
     if (chargingState.status === "idle") {
@@ -136,7 +94,7 @@ export function useChargingState({
       }, 5000);
       return () => clearTimeout(scheduleId);
     }
-  }, [carState, chargingState.status]);
+  }, [carState.stateOfCharge, chargingState.status]);
 
   // Check if the scheduled charge is due
   useEffect(() => {
@@ -144,7 +102,7 @@ export function useChargingState({
       const checkScheduledTime = () => {
         const now = new Date();
         if (now >= chargingState.charge.startTime) {
-          dispatch({ type: "START_SCHEDULED_CHARGE" });
+          dispatch({ type: "START_SCHEDULED_CHARGE", timestamp: now });
           toast.success("Scheduled charging started");
         }
       };
@@ -160,7 +118,7 @@ export function useChargingState({
       const checkSuspension = () => {
         const now = new Date();
         if (now >= chargingState.suspendedUntil) {
-          dispatch({ type: "RESUME_FROM_SUSPENSION" });
+          dispatch({ type: "RESUME_FROM_SUSPENSION", timestamp: now });
           toast.info(
             "Schedule suspension expired - charging can be scheduled again"
           );
