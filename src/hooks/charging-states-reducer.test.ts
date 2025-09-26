@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { add } from "date-fns";
 import {
   chargingStatesReducer,
-  estimateChargeDurationSeconds,
   type ChargingAction,
   type ChargingStateWithEvents,
 } from "./charging-states-reducer";
+import { estimateChargeDurationSeconds } from "../lib/utils";
 import type { ChargerState } from "./use-charging-state";
 import type { CarState } from "./use-car-state";
 
@@ -58,7 +58,7 @@ describe("chargingStatesReducer", () => {
         { status: "schedule-suspended", suspendedUntil: mockTimestamp },
       ];
 
-      const action: ChargingAction = { type: "UNPLUG_CAR" };
+      const action: ChargingAction = { type: "UNPLUG_CAR", timestamp: mockTimestamp };
 
       initialChargerStates.forEach((chargerState) => {
         const initialState: ChargingStateWithEvents = {
@@ -68,7 +68,7 @@ describe("chargingStatesReducer", () => {
         const result = chargingStatesReducer(initialState, action);
         expect(result.chargerState).toEqual({ status: "unplugged" });
         expect(result.eventHistory.length).toBe(1);
-        expect(result.eventHistory[0].type).toBe("connection");
+        expect(result.eventHistory[0].type).toBe("UNPLUG_CAR");
       });
     });
   });
@@ -79,12 +79,12 @@ describe("chargingStatesReducer", () => {
         chargerState: { status: "unplugged" },
         eventHistory: [],
       };
-      const action: ChargingAction = { type: "PLUG_IN_CAR" };
+      const action: ChargingAction = { type: "PLUG_IN_CAR", timestamp: mockTimestamp };
 
       const result = chargingStatesReducer(initialState, action);
       expect(result.chargerState).toEqual({ status: "idle" });
       expect(result.eventHistory.length).toBe(1);
-      expect(result.eventHistory[0].type).toBe("connection");
+      expect(result.eventHistory[0].type).toBe("PLUG_IN_CAR");
     });
   });
 
@@ -109,7 +109,7 @@ describe("chargingStatesReducer", () => {
         );
       }
       expect(result.eventHistory.length).toBe(1);
-      expect(result.eventHistory[0].type).toBe("override");
+      expect(result.eventHistory[0].type).toBe("TRIGGER_OVERRIDE");
     });
   });
 
@@ -125,12 +125,12 @@ describe("chargingStatesReducer", () => {
         },
         eventHistory: [],
       };
-      const action: ChargingAction = { type: "CANCEL_OVERRIDE_CHARGE" };
+      const action: ChargingAction = { type: "CANCEL_OVERRIDE_CHARGE", timestamp: mockTimestamp };
 
       const result = chargingStatesReducer(initialState, action);
       expect(result.chargerState).toEqual({ status: "idle" });
       expect(result.eventHistory.length).toBe(1);
-      expect(result.eventHistory[0].type).toBe("charging");
+      expect(result.eventHistory[0].type).toBe("CANCEL_OVERRIDE_CHARGE");
     });
   });
 
@@ -153,7 +153,7 @@ describe("chargingStatesReducer", () => {
         expect(result.chargerState.suspendedUntil).toEqual(expectedSuspendedUntil);
       }
       expect(result.eventHistory.length).toBe(1);
-      expect(result.eventHistory[0].type).toBe("schedule");
+      expect(result.eventHistory[0].type).toBe("CANCEL_SCHEDULED_CHARGE");
     });
   });
 
@@ -184,7 +184,7 @@ describe("chargingStatesReducer", () => {
         expect(result.chargerState.charge.targetChargePercent).toBe(85);
       }
       expect(result.eventHistory.length).toBe(1);
-      expect(result.eventHistory[0].type).toBe("schedule");
+      expect(result.eventHistory[0].type).toBe("SCHEDULE_CHARGE");
     });
   });
 
@@ -202,7 +202,7 @@ describe("chargingStatesReducer", () => {
         },
         eventHistory: [],
       };
-      const action: ChargingAction = { type: "START_SCHEDULED_CHARGE" };
+      const action: ChargingAction = { type: "START_SCHEDULED_CHARGE", timestamp: mockTimestamp };
 
       const result = chargingStatesReducer(initialState, action);
 
@@ -211,7 +211,7 @@ describe("chargingStatesReducer", () => {
         expect(result.chargerState.charge).toEqual(charge);
       }
       expect(result.eventHistory.length).toBe(1);
-      expect(result.eventHistory[0].type).toBe("charging");
+      expect(result.eventHistory[0].type).toBe("START_SCHEDULED_CHARGE");
     });
 
     it("does not transition if not in awaiting-scheduled-charge state", () => {
@@ -219,7 +219,7 @@ describe("chargingStatesReducer", () => {
         chargerState: { status: "idle" },
         eventHistory: [],
       };
-      const action: ChargingAction = { type: "START_SCHEDULED_CHARGE" };
+      const action: ChargingAction = { type: "START_SCHEDULED_CHARGE", timestamp: mockTimestamp };
 
       const result = chargingStatesReducer(initialState, action);
       expect(result).toEqual(initialState);
@@ -235,12 +235,12 @@ describe("chargingStatesReducer", () => {
         },
         eventHistory: [],
       };
-      const action: ChargingAction = { type: "RESUME_FROM_SUSPENSION" };
+      const action: ChargingAction = { type: "RESUME_FROM_SUSPENSION", timestamp: mockTimestamp };
 
       const result = chargingStatesReducer(initialState, action);
       expect(result.chargerState).toEqual({ status: "idle" });
       expect(result.eventHistory.length).toBe(1);
-      expect(result.eventHistory[0].type).toBe("schedule");
+      expect(result.eventHistory[0].type).toBe("RESUME_FROM_SUSPENSION");
     });
   });
 
@@ -250,7 +250,7 @@ describe("chargingStatesReducer", () => {
         chargerState: { status: "idle" },
         eventHistory: [],
       };
-      const action: ChargingAction = { type: "PLUG_IN_CAR" };
+      const action: ChargingAction = { type: "PLUG_IN_CAR", timestamp: mockTimestamp };
 
       const result = chargingStatesReducer(initialState, action);
 
@@ -282,7 +282,7 @@ describe("chargingStatesReducer", () => {
       };
 
       // Plug in car
-      state = chargingStatesReducer(state, { type: "PLUG_IN_CAR" });
+      state = chargingStatesReducer(state, { type: "PLUG_IN_CAR", timestamp: mockTimestamp });
       expect(state.chargerState.status).toBe("idle");
 
       // Trigger override
@@ -293,7 +293,7 @@ describe("chargingStatesReducer", () => {
       expect(state.chargerState.status).toBe("charging-override");
 
       // Cancel override
-      state = chargingStatesReducer(state, { type: "CANCEL_OVERRIDE_CHARGE" });
+      state = chargingStatesReducer(state, { type: "CANCEL_OVERRIDE_CHARGE", timestamp: mockTimestamp });
       expect(state.chargerState.status).toBe("idle");
 
       // Cancel scheduled charge (suspend)
@@ -304,7 +304,7 @@ describe("chargingStatesReducer", () => {
       expect(state.chargerState.status).toBe("schedule-suspended");
 
       // Resume from suspension
-      state = chargingStatesReducer(state, { type: "RESUME_FROM_SUSPENSION" });
+      state = chargingStatesReducer(state, { type: "RESUME_FROM_SUSPENSION", timestamp: mockTimestamp });
       expect(state.chargerState.status).toBe("idle");
     });
   });

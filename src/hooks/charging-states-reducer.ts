@@ -1,13 +1,12 @@
 import { add, addDays, getTime, setHours, startOfDay } from "date-fns";
 import type { ChargerState } from "./use-charging-state";
 import type { CarState } from "./use-car-state";
+import { estimateChargeDurationSeconds } from "../lib/utils";
 
 export type ChargingEvent = {
   id: string;
   timestamp: Date;
-  // ! Should just map to the Charging Actions
-  type: "connection" | "charging" | "schedule" | "override" | "completion";
-  action: string;
+  type: ChargingAction["type"];
   description: string;
   details?: Record<string, unknown>;
 };
@@ -18,90 +17,54 @@ export type ChargingStateWithEvents = {
 };
 
 export type ChargingAction =
-  | { type: "UNPLUG_CAR" }
-  | { type: "PLUG_IN_CAR" }
+  | { type: "UNPLUG_CAR"; timestamp: Date }
+  | { type: "PLUG_IN_CAR"; timestamp: Date }
   | { type: "TRIGGER_OVERRIDE"; timestamp: Date }
-  | { type: "CANCEL_OVERRIDE_CHARGE" }
+  | { type: "CANCEL_OVERRIDE_CHARGE"; timestamp: Date }
   | { type: "CANCEL_SCHEDULED_CHARGE"; timestamp: Date }
   | { type: "SCHEDULE_CHARGE"; carState: CarState; timestamp: Date }
-  | { type: "START_SCHEDULED_CHARGE" }
-  | { type: "RESUME_FROM_SUSPENSION" };
+  | { type: "START_SCHEDULED_CHARGE"; timestamp: Date }
+  | { type: "RESUME_FROM_SUSPENSION"; timestamp: Date };
 
 const overrideTimerDuration = { minutes: 60 };
 const optimalChargePercentage = 85.0;
-
-// ! duplicated in many files
-export const estimateChargeDurationSeconds = (
-  currentChargePercent: number,
-  targetChargePercent: number
-) => {
-  const chargeDifference = targetChargePercent - currentChargePercent;
-  return chargeDifference / 0.1; // chargeRatePerSecond = 0.1
-};
-
-// ! doesn't need an event creator?
-const createEvent = (
-  type: ChargingEvent["type"],
-  action: string,
-  description: string,
-  timestamp: Date = new Date(),
-  details?: Record<string, unknown>
-): ChargingEvent => ({
-  id: `${getTime(timestamp)}-${Math.random().toString(36).substring(2, 11)}`,
-  timestamp,
-  type,
-  action,
-  description,
-  details,
-});
-
-// ! Slicing not 100% necessary - so this function is a bit moot
-const addEvent = (
-  state: ChargingStateWithEvents,
-  event: ChargingEvent
-): ChargingStateWithEvents => ({
-  ...state,
-  eventHistory: [event, ...state.eventHistory].slice(0, 50), // Keep last 50 events
-});
 
 export function chargingStatesReducer(
   state: ChargingStateWithEvents,
   action: ChargingAction
 ): ChargingStateWithEvents {
-  // ! Not really a pure fn if it's using new Date()
-  const now = new Date();
+  const createEventId = (timestamp: Date) =>
+    `${getTime(timestamp)}-${Math.random().toString(36).substring(2, 11)}`;
 
   switch (action.type) {
     case "UNPLUG_CAR": {
-      const newState = {
+      const event: ChargingEvent = {
+        id: createEventId(action.timestamp),
+        timestamp: action.timestamp,
+        type: "UNPLUG_CAR",
+        description: "Vehicle was unplugged from charger",
+      };
+
+      return {
         ...state,
         chargerState: { status: "unplugged" as const },
+        eventHistory: [event, ...state.eventHistory],
       };
-      return addEvent(
-        newState,
-        createEvent(
-          "connection",
-          "Vehicle Disconnected",
-          "Vehicle was unplugged from charger",
-          now
-        )
-      );
     }
 
     case "PLUG_IN_CAR": {
-      const newState = {
+      const event: ChargingEvent = {
+        id: createEventId(action.timestamp),
+        timestamp: action.timestamp,
+        type: "PLUG_IN_CAR",
+        description: "Vehicle connected to charger and ready",
+      };
+
+      return {
         ...state,
         chargerState: { status: "idle" as const },
+        eventHistory: [event, ...state.eventHistory],
       };
-      return addEvent(
-        newState,
-        createEvent(
-          "connection",
-          "Vehicle Connected",
-          "Vehicle connected to charger and ready",
-          now
-        )
-      );
     }
 
     case "TRIGGER_OVERRIDE": {
@@ -112,36 +75,35 @@ export function chargingStatesReducer(
           endTime: add(action.timestamp, overrideTimerDuration),
         },
       };
-      const newState = {
+
+      const event: ChargingEvent = {
+        id: createEventId(action.timestamp),
+        timestamp: action.timestamp,
+        type: "TRIGGER_OVERRIDE",
+        description: "Override charging session initiated",
+        details: { endTime: newChargerState.charge.endTime },
+      };
+
+      return {
         ...state,
         chargerState: newChargerState,
+        eventHistory: [event, ...state.eventHistory],
       };
-      return addEvent(
-        newState,
-        createEvent(
-          "override",
-          "Manual Charging Started",
-          "Override charging session initiated",
-          action.timestamp,
-          { endTime: newChargerState.charge.endTime }
-        )
-      );
     }
 
     case "CANCEL_OVERRIDE_CHARGE": {
-      const newState = {
+      const event: ChargingEvent = {
+        id: createEventId(action.timestamp),
+        timestamp: action.timestamp,
+        type: "CANCEL_OVERRIDE_CHARGE",
+        description: "Manual charging session ended",
+      };
+
+      return {
         ...state,
         chargerState: { status: "idle" as const },
+        eventHistory: [event, ...state.eventHistory],
       };
-      return addEvent(
-        newState,
-        createEvent(
-          "charging",
-          "Charging Stopped",
-          "Manual charging session ended",
-          now
-        )
-      );
     }
 
     case "CANCEL_SCHEDULED_CHARGE": {
@@ -151,20 +113,20 @@ export function chargingStatesReducer(
         status: "schedule-suspended" as const,
         suspendedUntil: tomorrow,
       };
-      const newState = {
+
+      const event: ChargingEvent = {
+        id: createEventId(action.timestamp),
+        timestamp: action.timestamp,
+        type: "CANCEL_SCHEDULED_CHARGE",
+        description: "Charging schedule suspended until tomorrow 6 AM",
+        details: { suspendedUntil: tomorrow },
+      };
+
+      return {
         ...state,
         chargerState: newChargerState,
+        eventHistory: [event, ...state.eventHistory],
       };
-      return addEvent(
-        newState,
-        createEvent(
-          "schedule",
-          "Scheduled Charging Cancelled",
-          "Charging schedule suspended until tomorrow 6 AM",
-          action.timestamp,
-          { suspendedUntil: tomorrow }
-        )
-      );
     }
 
     case "SCHEDULE_CHARGE": {
@@ -183,25 +145,25 @@ export function chargingStatesReducer(
           targetChargePercent: optimalChargePercentage,
         },
       };
-      const newState = {
+
+      const event: ChargingEvent = {
+        id: createEventId(action.timestamp),
+        timestamp: action.timestamp,
+        type: "SCHEDULE_CHARGE",
+        description: `Charging scheduled to reach ${optimalChargePercentage}%`,
+        details: {
+          startTime,
+          endTime,
+          targetCharge: optimalChargePercentage,
+          currentCharge: action.carState.stateOfCharge,
+        },
+      };
+
+      return {
         ...state,
         chargerState: newChargerState,
+        eventHistory: [event, ...state.eventHistory],
       };
-      return addEvent(
-        newState,
-        createEvent(
-          "schedule",
-          "Charging Scheduled",
-          `Charging scheduled to reach ${optimalChargePercentage}%`,
-          action.timestamp,
-          {
-            startTime,
-            endTime,
-            targetCharge: optimalChargePercentage,
-            currentCharge: action.carState.stateOfCharge,
-          }
-        )
-      );
     }
 
     case "START_SCHEDULED_CHARGE": {
@@ -210,38 +172,37 @@ export function chargingStatesReducer(
           status: "charging-scheduled" as const,
           charge: state.chargerState.charge,
         };
-        const newState = {
+
+        const event: ChargingEvent = {
+          id: createEventId(action.timestamp),
+          timestamp: action.timestamp,
+          type: "START_SCHEDULED_CHARGE",
+          description: "Automatic charging session began as scheduled",
+          details: { targetCharge: newChargerState.charge.targetChargePercent },
+        };
+
+        return {
           ...state,
           chargerState: newChargerState,
+          eventHistory: [event, ...state.eventHistory],
         };
-        return addEvent(
-          newState,
-          createEvent(
-            "charging",
-            "Scheduled Charging Started",
-            "Automatic charging session began as scheduled",
-            now,
-            { targetCharge: newChargerState.charge.targetChargePercent }
-          )
-        );
       }
       return state;
     }
 
     case "RESUME_FROM_SUSPENSION": {
-      const newState = {
+      const event: ChargingEvent = {
+        id: createEventId(action.timestamp),
+        timestamp: action.timestamp,
+        type: "RESUME_FROM_SUSPENSION",
+        description: "Charging schedule suspension lifted",
+      };
+
+      return {
         ...state,
         chargerState: { status: "idle" as const },
+        eventHistory: [event, ...state.eventHistory],
       };
-      return addEvent(
-        newState,
-        createEvent(
-          "schedule",
-          "Schedule Resumed",
-          "Charging schedule suspension lifted",
-          now
-        )
-      );
     }
 
     default:

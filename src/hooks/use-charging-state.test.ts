@@ -1,10 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { add } from 'date-fns'
-import {
-  useChargingState,
-  estimateChargeDurationSeconds
-} from './use-charging-state'
+import { useChargingState } from './use-charging-state'
+import { estimateChargeDurationSeconds } from '../lib/utils'
 import type { CarState } from './use-car-state'
 
 // Mock toast notifications
