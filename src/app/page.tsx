@@ -10,6 +10,7 @@ import { ChargingTimeline } from "@/components/charging-timeline";
 
 const dateFormatString = "p";
 
+// ! should be on the charger
 const getChargingRate = (status: string) => {
   if (status === "charging-override" || status === "charging-scheduled") {
     return 7.4; // kW
@@ -17,6 +18,7 @@ const getChargingRate = (status: string) => {
   return 0;
 };
 
+// ! Move to a charging utils module
 const estimateTimeRemaining = (
   currentCharge: number,
   targetCharge: number,
@@ -62,16 +64,21 @@ export default function Home() {
     chargingState.status === "awaiting-scheduled-charge"
       ? chargingState.charge?.targetChargePercent || 85
       : 100;
+
+  // TODO should be a property on the charging state
   const timeRemaining = estimateTimeRemaining(
     carState.stateOfCharge,
     targetCharge,
     chargingRate,
-    chargingState.status === "charging-override" ? chargingState.charge.endTime : undefined
+    chargingState.status === "charging-override"
+      ? chargingState.charge.endTime
+      : undefined
   );
 
   const isCharging =
     chargingState.status === "charging-override" ||
     chargingState.status === "charging-scheduled";
+
   const isConnected = chargingState.status !== "unplugged";
 
   return (

@@ -5,6 +5,7 @@ import type { CarState } from "./use-car-state";
 export type ChargingEvent = {
   id: string;
   timestamp: Date;
+  // ! Should just map to the Charging Actions
   type: "connection" | "charging" | "schedule" | "override" | "completion";
   action: string;
   description: string;
@@ -29,6 +30,7 @@ export type ChargingAction =
 const overrideTimerDuration = { minutes: 60 };
 const optimalChargePercentage = 85.0;
 
+// ! duplicated in many files
 export const estimateChargeDurationSeconds = (
   currentChargePercent: number,
   targetChargePercent: number
@@ -37,6 +39,7 @@ export const estimateChargeDurationSeconds = (
   return chargeDifference / 0.1; // chargeRatePerSecond = 0.1
 };
 
+// ! doesn't need an event creator?
 const createEvent = (
   type: ChargingEvent["type"],
   action: string,
@@ -52,6 +55,7 @@ const createEvent = (
   details,
 });
 
+// ! Slicing not 100% necessary - so this function is a bit moot
 const addEvent = (
   state: ChargingStateWithEvents,
   event: ChargingEvent
@@ -64,6 +68,7 @@ export function chargingStatesReducer(
   state: ChargingStateWithEvents,
   action: ChargingAction
 ): ChargingStateWithEvents {
+  // ! Not really a pure fn if it's using new Date()
   const now = new Date();
 
   switch (action.type) {
@@ -140,10 +145,7 @@ export function chargingStatesReducer(
     }
 
     case "CANCEL_SCHEDULED_CHARGE": {
-      const tomorrow = setHours(
-        startOfDay(addDays(action.timestamp, 1)),
-        6
-      );
+      const tomorrow = setHours(startOfDay(addDays(action.timestamp, 1)), 6);
 
       const newChargerState = {
         status: "schedule-suspended" as const,

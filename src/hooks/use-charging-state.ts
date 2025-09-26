@@ -124,10 +124,11 @@ export function useChargingState({
 
   // Schedule a charge when idle
   useEffect(() => {
-    if (chargingState.status === "unplugged") return;
-
     const carIsChargedEnough =
       carState.stateOfCharge >= optimalChargePercentage;
+
+    if (chargingState.status === "unplugged" || carIsChargedEnough) return;
+
     if (carIsChargedEnough) return;
 
     if (chargingState.status === "idle") {
@@ -136,7 +137,7 @@ export function useChargingState({
       }, 5000);
       return () => clearTimeout(scheduleId);
     }
-  }, [carState, chargingState.status]);
+  }, [carState.stateOfCharge, chargingState.status]);
 
   // Check if the scheduled charge is due
   useEffect(() => {
