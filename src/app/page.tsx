@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Plug, Zap } from "lucide-react";
 
-import { useCarState, formatChargePercentage } from "@/hooks/use-car-state";
+import { useCarState } from "@/hooks/use-car-state";
+import { formatChargePercentage } from "@/lib/utils";
 import { useChargingState } from "@/hooks/use-charging-state";
 import { ChargingTimeline } from "@/components/charging-timeline";
 

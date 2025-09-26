@@ -7,47 +7,6 @@ import {
   type ChargingStateWithEvents,
 } from "./charging-states-reducer";
 
-export type ScheduledCharge = {
-  startTime: Date;
-  endTime: Date;
-  targetChargePercent: number;
-};
-
-export type OverrideCharge = {
-  startTime: Date;
-  endTime: Date;
-};
-
-export type ChargerUnpluggedState = {
-  status: "unplugged";
-};
-
-export type ChargerIdleState = {
-  status: "idle";
-};
-
-export type ChargerScheduledState = {
-  status: "awaiting-scheduled-charge" | "charging-scheduled";
-  charge: ScheduledCharge;
-};
-
-export type ChargerOverrideState = {
-  status: "charging-override";
-  charge: OverrideCharge;
-};
-
-export type ChargerSuspendedState = {
-  status: "schedule-suspended";
-  suspendedUntil: Date;
-};
-
-export type ChargerState =
-  | ChargerUnpluggedState
-  | ChargerIdleState
-  | ChargerScheduledState
-  | ChargerOverrideState
-  | ChargerSuspendedState;
-
 const optimalChargePercentage = 85.0;
 const maximumChargePercentage = 100.0;
 

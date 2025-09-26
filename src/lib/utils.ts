@@ -12,3 +12,7 @@ export const estimateChargeDurationSeconds = (
   const chargeDifference = targetChargePercent - currentChargePercent;
   return chargeDifference / 0.1; // chargeRatePerSecond = 0.1
 };
+
+export const formatChargePercentage = (input: number) => {
+  return input.toFixed(1);
+};

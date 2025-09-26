@@ -4,9 +4,9 @@ import {
   chargingStatesReducer,
   type ChargingAction,
   type ChargingStateWithEvents,
+  type ChargerState,
 } from "./charging-states-reducer";
 import { estimateChargeDurationSeconds } from "../lib/utils";
-import type { ChargerState } from "./use-charging-state";
 import type { CarState } from "./use-car-state";
 
 describe("chargingStatesReducer", () => {

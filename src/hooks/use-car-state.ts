@@ -8,10 +8,6 @@ export type CarState = {
 
 const chargeRatePerSecond = 0.1;
 
-// ! Doesn't belong in this hook
-export const formatChargePercentage = (input: number) => {
-  return input.toFixed(1);
-};
 
 export function useCarState(initialState: CarState) {
   const [carState, setCarState] = useState<CarState>(initialState);
