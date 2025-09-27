@@ -1,5 +1,6 @@
-import { query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { slugifyNickname } from "../src/lib/utils";
 
 export const get = query({
   args: {},
@@ -19,9 +20,9 @@ export const getBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx, args) => {
     // Extract nickname and partial ID from slug
-    const slugParts = args.slug.split('-');
+    const slugParts = args.slug.split("-");
     const partialId = slugParts[slugParts.length - 1];
-    const nickname = slugParts.slice(0, -1).join('-');
+    const nickname = slugParts.slice(0, -1).join("-");
 
     if (!partialId || partialId.length < 6) {
       return null;
@@ -29,7 +30,9 @@ export const getBySlug = query({
 
     // Get all vehicles that match the partial ID
     const vehicles = await ctx.db.query("vehicles").collect();
-    const candidateVehicles = vehicles.filter(v => v._id.startsWith(partialId));
+    const candidateVehicles = vehicles.filter((v) =>
+      v._id.startsWith(partialId)
+    );
 
     // If no matches, return null
     if (candidateVehicles.length === 0) {
@@ -42,14 +45,8 @@ export const getBySlug = query({
     }
 
     // If multiple matches, find the one with matching nickname
-    const slugifyNickname = (name: string) =>
-      name.toLowerCase()
-          .replace(/[^a-z0-9]/g, '-')
-          .replace(/-+/g, '-')
-          .replace(/^-|-$/g, '');
-
-    const matchingVehicle = candidateVehicles.find(v =>
-      slugifyNickname(v.nickname) === nickname
+    const matchingVehicle = candidateVehicles.find(
+      (v) => slugifyNickname(v.nickname) === nickname
     );
 
     // Return the nickname match, or first candidate if no nickname match
@@ -57,5 +54,22 @@ export const getBySlug = query({
   },
 });
 
+export const create = mutation({
+  args: {
+    nickname: v.string(),
+    model: v.string(),
+    batteryCapacity: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { nickname, model, batteryCapacity } = args;
+    const mockInitialCharge = 50;
+    const newVehicleId = await ctx.db.insert("vehicles", {
+      nickname,
+      model,
+      batteryCapacity,
+      stateOfCharge: mockInitialCharge,
+    });
 
-
+    return newVehicleId;
+  },
+});

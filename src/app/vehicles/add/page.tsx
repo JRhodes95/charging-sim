@@ -18,6 +18,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 import z from "zod";
+import { useMutation } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { generateSlug } from "@/lib/utils";
 
 const formSchema = z.object({
   nickname: z
@@ -43,11 +48,25 @@ export default function AddVehiclePage() {
     defaultValues: {
       nickname: "",
       model: "",
-      batteryCapacity: undefined,
+      batteryCapacity: 0,
     },
   });
 
-  const onSubmit = (values: FormSchema) => console.table(values);
+  const createVehicleMutation = useMutation(api.vehicles.create);
+  const router = useRouter();
+
+  const onSubmit = async (values: FormSchema) => {
+    try {
+      const vehicleId = await createVehicleMutation(values);
+
+      const vehiclePageHref = `/vehicles/${generateSlug(values.nickname, vehicleId)}`;
+
+      toast.success(`Vehicle added to your account`);
+      router.push(vehiclePageHref);
+    } catch (error) {
+      toast.error(`That didn't work!`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -85,9 +104,7 @@ export default function AddVehiclePage() {
                 name="nickname"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
-                      Vehicle Name
-                    </FormLabel>
+                    <FormLabel>Vehicle Name</FormLabel>
                     <FormControl>
                       <Input className="h-11" {...field} />
                     </FormControl>
@@ -104,9 +121,7 @@ export default function AddVehiclePage() {
                 name="model"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
-                      Vehicle Model
-                    </FormLabel>
+                    <FormLabel>Vehicle Model</FormLabel>
                     <FormControl>
                       <Input className="h-11" {...field} />
                     </FormControl>
@@ -123,9 +138,7 @@ export default function AddVehiclePage() {
                 name="batteryCapacity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
-                      Battery Capacity (kWh)
-                    </FormLabel>
+                    <FormLabel>Battery Capacity (kWh)</FormLabel>
                     <FormControl>
                       <Input type="number" className="h-11" {...field} />
                     </FormControl>

@@ -7,21 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Car, Battery, MapPin, Calendar } from "lucide-react";
 import { format } from "date-fns";
+import { generateSlug } from "@/lib/utils";
 
 const formatChargePercentage = (input: number) => {
   return input.toFixed(1);
 };
 
-const generateSlug = (nickname: string, id: string): string => {
-  const cleanNickname = nickname
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-
-  const partialId = id.substring(0, 6);
-  return `${cleanNickname || "untitled"}-${partialId}`;
-};
 
 const getChargeStatusColor = (charge: number) => {
   if (charge > 80) return "bg-green-500";
