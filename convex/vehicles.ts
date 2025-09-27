@@ -57,16 +57,5 @@ export const getBySlug = query({
   },
 });
 
-export const getChargingEvents = query({
-  args: { vehicleId: v.optional(v.id("vehicles")) },
-  handler: async (ctx, args) => {
-    if (!args.vehicleId) {
-      return await ctx.db.query("charging_events").order("desc").take(50);
-    }
-    return await ctx.db
-      .query("charging_events")
-      .filter((q) => q.eq(q.field("vehicle_id"), args.vehicleId))
-      .order("desc")
-      .take(50);
-  },
-});
+
+

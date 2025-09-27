@@ -15,12 +15,12 @@ const formatChargePercentage = (input: number) => {
 const generateSlug = (nickname: string, id: string): string => {
   const cleanNickname = nickname
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(/[^a-z0-9]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 
   const partialId = id.substring(0, 6);
-  return `${cleanNickname || 'untitled'}-${partialId}`;
+  return `${cleanNickname || "untitled"}-${partialId}`;
 };
 
 const getChargeStatusColor = (charge: number) => {
@@ -44,7 +44,9 @@ export default function VehiclesPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-2">Loading...</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            Loading...
+          </h1>
           <p className="text-muted-foreground">Fetching vehicles</p>
         </div>
       </div>
@@ -57,11 +59,15 @@ export default function VehiclesPage() {
         <div className="max-w-6xl mx-auto px-6 py-12">
           <div className="text-center py-12">
             <Car className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h1 className="text-3xl font-bold text-foreground mb-2">No Vehicles</h1>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              No Vehicles
+            </h1>
             <p className="text-muted-foreground mb-6">
               You haven't added any vehicles yet.
             </p>
-            <Button>Add Vehicle</Button>
+            <Button asChild>
+              <Link href={`/vehicles/add`}>Add Vehicle</Link>
+            </Button>
           </div>
         </div>
       </div>
@@ -78,10 +84,13 @@ export default function VehiclesPage() {
               Your Vehicles
             </h1>
             <p className="text-muted-foreground text-lg">
-              {vehicles.length} vehicle{vehicles.length !== 1 ? 's' : ''} in your fleet
+              {vehicles.length} vehicle{vehicles.length !== 1 ? "s" : ""} in
+              your fleet
             </p>
           </div>
-          <Button>Add Vehicle</Button>
+          <Button asChild>
+            <Link href={`/vehicles/add`}>Add Vehicle</Link>
+          </Button>
         </div>
 
         {/* Vehicle Grid */}
@@ -99,7 +108,9 @@ export default function VehiclesPage() {
                     <h3 className="text-xl font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">
                       {vehicle.nickname}
                     </h3>
-                    <p className="text-sm text-muted-foreground">{vehicle.model}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {vehicle.model}
+                    </p>
                   </div>
                   <Car className="w-6 h-6 text-muted-foreground" />
                 </div>
@@ -130,7 +141,9 @@ export default function VehiclesPage() {
                   <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                     <div
                       className={`h-full transition-all duration-300 ${getChargeStatusColor(vehicle.stateOfCharge || 0)}`}
-                      style={{ width: `${Math.min(vehicle.stateOfCharge || 0, 100)}%` }}
+                      style={{
+                        width: `${Math.min(vehicle.stateOfCharge || 0, 100)}%`,
+                      }}
                     />
                   </div>
                 </div>
@@ -153,7 +166,8 @@ export default function VehiclesPage() {
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4" />
                       <span>
-                        Updated {format(new Date(vehicle.lastUpdated), "MMM d, h:mm a")}
+                        Updated{" "}
+                        {format(new Date(vehicle.lastUpdated), "MMM d, h:mm a")}
                       </span>
                     </div>
                   )}
