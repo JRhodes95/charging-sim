@@ -3,6 +3,8 @@ import { Work_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ConvexClientProvider } from "@/providers/convex-client";
+import { AppBreadcrumb } from "@/components/app-breadcrumb";
 
 const workSans = Work_Sans({
   variable: "--font-work-sans",
@@ -16,8 +18,12 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Charging",
-  description: "Example car charger app UI",
+  title: {
+    template: "%s | EV fleet manager",
+    default: "Dashboard | EV fleet manager",
+  },
+  description:
+    "Manage your electric vehicle fleet with real-time charging status, analytics, and control.",
 };
 
 export default function RootLayout({
@@ -36,8 +42,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster />
+          <ConvexClientProvider>
+            <AppBreadcrumb />
+            {children}
+            <Toaster />
+          </ConvexClientProvider>
         </ThemeProvider>
       </body>
     </html>
