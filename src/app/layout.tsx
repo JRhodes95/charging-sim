@@ -1,27 +1,29 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Work_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ConvexClientProvider } from "@/providers/convex-client";
 import { AppBreadcrumb } from "@/components/app-breadcrumb";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const workSans = Work_Sans({
+  variable: "--font-work-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const ibmPlexMono = IBM_Plex_Mono({
+  variable: "--font-ibm-plex-mono",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   title: {
     template: "%s | EV fleet manager",
-    default: "Dashboard | EV fleet manager"
+    default: "Dashboard | EV fleet manager",
   },
-  description: "Manage your electric vehicle fleet with real-time charging status, analytics, and control.",
+  description:
+    "Manage your electric vehicle fleet with real-time charging status, analytics, and control.",
 };
 
 export default function RootLayout({
@@ -32,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${workSans.variable} ${ibmPlexMono.variable} antialiased`}
       >
         <ThemeProvider
           attribute="class"
