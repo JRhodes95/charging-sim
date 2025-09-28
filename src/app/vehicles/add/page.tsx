@@ -22,7 +22,7 @@ import { useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { generateSlug } from "@/lib/utils";
+import { generateSlug } from "@/lib/slugs";
 
 const formSchema = z.object({
   nickname: z
@@ -63,7 +63,7 @@ export default function AddVehiclePage() {
 
       toast.success(`Vehicle added to your account`);
       router.push(vehiclePageHref);
-    } catch (error) {
+    } catch {
       toast.error(`That didn't work!`);
     }
   };
@@ -76,7 +76,7 @@ export default function AddVehiclePage() {
           <Button variant="ghost" asChild className="mb-4 -ml-4">
             <Link href="/vehicles" className="flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />
-              Back to Vehicles
+              Back to vehicles
             </Link>
           </Button>
 
@@ -86,7 +86,7 @@ export default function AddVehiclePage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-foreground">
-                Add Vehicle
+                Add vehicle
               </h1>
               <p className="text-muted-foreground">
                 Add a new vehicle to your fleet
@@ -104,7 +104,7 @@ export default function AddVehiclePage() {
                 name="nickname"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Vehicle Name</FormLabel>
+                    <FormLabel>Vehicle name</FormLabel>
                     <FormControl>
                       <Input className="h-11" {...field} />
                     </FormControl>
@@ -121,7 +121,7 @@ export default function AddVehiclePage() {
                 name="model"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Vehicle Model</FormLabel>
+                    <FormLabel>Vehicle model</FormLabel>
                     <FormControl>
                       <Input className="h-11" {...field} />
                     </FormControl>
@@ -138,7 +138,7 @@ export default function AddVehiclePage() {
                 name="batteryCapacity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Battery Capacity (kWh)</FormLabel>
+                    <FormLabel>Battery capacity (kWh)</FormLabel>
                     <FormControl>
                       <Input type="number" className="h-11" {...field} />
                     </FormControl>
@@ -152,7 +152,7 @@ export default function AddVehiclePage() {
 
               <div className="flex gap-3 pt-4">
                 <Button type="submit" className="flex-1">
-                  Add Vehicle
+                  Add vehicle
                 </Button>
                 <Button type="button" variant="outline" asChild>
                   <Link href="/vehicles">Cancel</Link>

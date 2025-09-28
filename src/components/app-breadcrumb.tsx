@@ -12,17 +12,7 @@ import { usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Home } from "lucide-react";
-
-const generateSlug = (nickname: string, id: string): string => {
-  const cleanNickname = nickname
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-
-  const partialId = id.substring(0, 6);
-  return `${cleanNickname || 'untitled'}-${partialId}`;
-};
+import { generateSlug } from "@/lib/slugs";
 
 export function AppBreadcrumb() {
   const pathname = usePathname();

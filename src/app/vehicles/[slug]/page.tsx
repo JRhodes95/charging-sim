@@ -1,13 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Plug, Zap } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-// import { ChargingTimeline } from "@/components/charging-timeline";
-import { useParams, useSearchParams } from "next/navigation";
-const dateFormatString = "p";
+import { useParams } from "next/navigation";
 
 // const getChargingRate = (status: string) => {
 //   if (status === "charging-override" || status === "charging-scheduled") {
@@ -105,7 +101,7 @@ export default function VehicleDetail() {
               {vehicle.location && (
                 <div className="col-span-2">
                   <div className="text-sm text-muted-foreground mb-1">
-                    Last Known Location
+                    Last known location
                   </div>
                   <div className="text-xl font-semibold text-foreground">
                     {vehicle.location}
@@ -114,7 +110,7 @@ export default function VehicleDetail() {
               )}
             </div>
 
-            {/* Last Updated */}
+            {/* Last updated */}
             {vehicle.lastUpdated && (
               <div className="text-sm text-muted-foreground pt-6 border-t border-border">
                 Last updated:{" "}
@@ -130,7 +126,7 @@ export default function VehicleDetail() {
           {/* <div>
             <div className="flex items-center gap-2 mb-6">
               <h2 className="text-xl font-semibold text-foreground">
-                Recent Activity
+                Recent activity
               </h2>
             </div>
             <ChargingTimeline events={chargingEvents || []} />

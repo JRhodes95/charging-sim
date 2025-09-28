@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { slugifyNickname } from "../src/lib/utils";
+import { slugifyNickname } from "../src/lib/slugs";
 
 /**
  * Retrieves all vehicles from the database.

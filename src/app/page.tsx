@@ -1,67 +1,36 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
-import { Plug, Zap } from "lucide-react";
-
-import { useCarState, formatChargePercentage } from "@/hooks/use-car-state";
-import { useChargingState } from "@/hooks/use-charging-state";
-import { ChargingTimeline } from "@/components/charging-timeline";
-
-const dateFormatString = "p";
-
-const getChargingRate = (status: string) => {
-  if (status === "charging-override" || status === "charging-scheduled") {
-    return 7.4; // kW
-  }
-  return 0;
-};
-
-const estimateTimeRemaining = (
-  currentCharge: number,
-  targetCharge: number,
-  chargingRate: number
-) => {
-  if (chargingRate === 0) return null;
-  const remainingCharge = targetCharge - currentCharge;
-  const batteryCapacity = 32.6; // kWh for Mini Cooper E
-  const timeHours = ((remainingCharge / 100) * batteryCapacity) / chargingRate;
-  return Math.max(0, timeHours * 60); // minutes
-};
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import Link from "next/link";
+import { Car, Battery, Plus, Settings } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { generateSlug } from "@/lib/slugs";
+import { formatChargePercentage, getChargeStatusColor, getChargeStatusText } from "@/lib/charging";
 
 export default function Home() {
-  const { carState, incrementCharge } = useCarState({
-    model: "Mini Cooper E",
-    nickname: "kEVin",
-    stateOfCharge: 21.0,
-  });
+  const vehicles = useQuery(api.vehicles.get);
 
-  const {
-    chargingState,
-    eventHistory,
-    unplugCar,
-    plugInCar,
-    triggerOverride,
-    cancelOverrideCharge,
-    cancelScheduledCharge,
-  } = useChargingState({ carState, incrementCharge });
+  const totalVehicles = vehicles?.length || 0;
+  const averageCharge = vehicles?.length
+    ? vehicles.reduce((sum, vehicle) => sum + (vehicle.stateOfCharge || 0), 0) / vehicles.length
+    : 0;
+  const lowChargeVehicles = vehicles?.filter(vehicle => (vehicle.stateOfCharge || 0) < 20).length || 0;
+  const totalCapacity = vehicles?.reduce((sum, vehicle) => sum + (vehicle.batteryCapacity || 0), 0) || 0;
 
-  const chargingRate = getChargingRate(chargingState.status);
-  const targetCharge =
-    chargingState.status === "charging-scheduled" ||
-    chargingState.status === "awaiting-scheduled-charge"
-      ? chargingState.charge?.targetChargePercent || 85
-      : 100;
-  const timeRemaining = estimateTimeRemaining(
-    carState.stateOfCharge,
-    targetCharge,
-    chargingRate
-  );
-
-  const isCharging =
-    chargingState.status === "charging-override" ||
-    chargingState.status === "charging-scheduled";
-  const isConnected = chargingState.status !== "unplugged";
+  if (!vehicles) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            Loading...
+          </h1>
+          <p className="text-muted-foreground">Loading dashboard</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -70,204 +39,146 @@ export default function Home() {
         <div className="flex items-start justify-between mb-12">
           <div>
             <h1 className="text-4xl font-bold text-foreground mb-2">
-              {carState.nickname}
+              Dashboard
             </h1>
-            <p className="text-muted-foreground text-lg">{carState.model}</p>
+            <p className="text-muted-foreground text-lg">
+              Your electric vehicle fleet overview
+            </p>
           </div>
-          <Button
-            variant={isConnected ? "outline" : "default"}
-            onClick={isConnected ? unplugCar : plugInCar}
-            size="lg"
-          >
-            <Plug className="w-4 h-4 mr-2" />
-            {isConnected ? "Unplug" : "Plug in"}
-          </Button>
+          <div className="flex gap-3">
+            <Button asChild variant="outline">
+              <Link href="/vehicles">
+                <Car className="w-4 h-4 mr-2" />
+                View vehicles
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/vehicles/add">
+                <Plus className="w-4 h-4 mr-2" />
+                Add vehicle
+              </Link>
+            </Button>
+          </div>
         </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* Left: Battery & Status */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Battery Level */}
-            <div>
-              <div className="flex items-end gap-3 mb-4">
-                <span className="text-6xl font-bold text-foreground">
-                  {formatChargePercentage(carState.stateOfCharge)}
-                </span>
-                <span className="text-2xl text-muted-foreground mb-2">%</span>
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <div className="bg-card border border-border rounded-lg p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <Car className="w-8 h-8 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Total vehicles</p>
+                <p className="text-2xl font-bold text-foreground">{totalVehicles}</p>
               </div>
-
-              {/* Progress Bar */}
-              <div className="relative mb-6">
-                <div className="w-full h-2 bg-muted rounded-full">
-                  <div
-                    className={`h-full rounded-full transition-all duration-1000 ${
-                      isCharging
-                        ? "bg-charging"
-                        : carState.stateOfCharge > 80
-                        ? "bg-success"
-                        : carState.stateOfCharge > 50
-                        ? "bg-warning"
-                        : "bg-destructive"
-                    }`}
-                    style={{
-                      width: `${Math.min(carState.stateOfCharge, 100)}%`,
-                    }}
-                  />
-                </div>
-                {targetCharge !== 100 && (
-                  <div
-                    className="absolute top-0 w-0.5 h-2 bg-muted-foreground"
-                    style={{ left: `${targetCharge}%` }}
-                  />
-                )}
-              </div>
-
-              {/* Connection Status */}
-              <div className="flex items-center gap-3 mb-6">
-                <Plug
-                  className={`w-5 h-5 ${
-                    isConnected ? "text-success" : "text-muted-foreground"
-                  }`}
-                />
-                <span className="text-foreground font-medium">
-                  {isConnected ? "Connected" : "Disconnected"}
-                </span>
-                {isConnected && (
-                  <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
-                )}
-              </div>
-
-              {/* Charging Info */}
-              {isCharging && (
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">
-                      Charging Rate
-                    </div>
-                    <div className="text-xl font-semibold text-foreground">
-                      {chargingRate} kW
-                    </div>
-                  </div>
-                  {timeRemaining && (
-                    <div>
-                      <div className="text-sm text-muted-foreground mb-1">
-                        Time Remaining
-                      </div>
-                      <div className="text-xl font-semibold text-foreground">
-                        {Math.floor(timeRemaining / 60)}h{" "}
-                        {Math.floor(timeRemaining % 60)}m
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
-
-            {/* Status Message */}
-            {isConnected && (
-              <div className="py-6 border-t border-border">
-                <div className="flex items-center gap-3 mb-2">
-                  <div
-                    className={`w-2 h-2 rounded-full ${
-                      isCharging
-                        ? "bg-charging animate-pulse"
-                        : chargingState.status === "awaiting-scheduled-charge"
-                        ? "bg-warning"
-                        : chargingState.status === "schedule-suspended"
-                        ? "bg-destructive"
-                        : "bg-muted-foreground"
-                    }`}
-                  />
-                  <span className="font-medium text-foreground">
-                    {
-                      {
-                        idle: "Ready to charge",
-                        "awaiting-scheduled-charge":
-                          "Scheduled charging pending",
-                        "charging-scheduled": "Charging (Scheduled)",
-                        "charging-override": "Charging (Manual)",
-                        "schedule-suspended": "Schedule suspended",
-                      }[
-                        chargingState.status as Exclude<
-                          typeof chargingState.status,
-                          "unplugged"
-                        >
-                      ]
-                    }
-                  </span>
-                </div>
-
-                {chargingState.status === "awaiting-scheduled-charge" && (
-                  <p className="text-sm text-muted-foreground">
-                    Scheduled start:{" "}
-                    {format(chargingState.charge.startTime, dateFormatString)} •
-                    Target: {chargingState.charge.targetChargePercent}%
-                  </p>
-                )}
-
-                {(chargingState.status === "charging-scheduled" ||
-                  chargingState.status === "charging-override") && (
-                  <p className="text-sm text-muted-foreground">
-                    Started:{" "}
-                    {format(chargingState.charge.startTime, dateFormatString)}
-                    {chargingState.status === "charging-scheduled" && (
-                      <>
-                        {" "}
-                        • Target: {chargingState.charge.targetChargePercent}%
-                      </>
-                    )}
-                  </p>
-                )}
-
-                {chargingState.status === "schedule-suspended" && (
-                  <p className="text-sm text-muted-foreground">
-                    Suspended until:{" "}
-                    {format(chargingState.suspendedUntil, "MMM d 'at' h:mm a")}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Controls */}
-            {isConnected && (
-              <div className="flex gap-3 pt-6 border-t border-border">
-                <Button
-                  onClick={triggerOverride}
-                  disabled={isCharging}
-                  size="lg"
-                >
-                  <Zap className="w-4 h-4 mr-2" />
-                  Start Charging
-                </Button>
-
-                {isCharging && (
-                  <Button
-                    onClick={
-                      chargingState.status === "charging-scheduled"
-                        ? cancelScheduledCharge
-                        : cancelOverrideCharge
-                    }
-                    variant="outline"
-                    size="lg"
-                  >
-                    Stop Charging
-                  </Button>
-                )}
-              </div>
-            )}
           </div>
 
-          {/* Right: Timeline */}
+          <div className="bg-card border border-border rounded-lg p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <Battery className="w-8 h-8 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Average charge</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {formatChargePercentage(averageCharge)}%
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card border border-border rounded-lg p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <Badge className={`w-8 h-8 ${getChargeStatusColor(15)} flex items-center justify-center`}>
+                !
+              </Badge>
+              <div>
+                <p className="text-sm text-muted-foreground">Low charge</p>
+                <p className="text-2xl font-bold text-foreground">{lowChargeVehicles}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card border border-border rounded-lg p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <Settings className="w-8 h-8 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Total capacity</p>
+                <p className="text-2xl font-bold text-foreground">{totalCapacity} kWh</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Vehicle Overview */}
+        {totalVehicles > 0 ? (
           <div>
-            <div className="flex items-center gap-2 mb-6">
-              <h2 className="text-xl font-semibold text-foreground">
-                Recent Activity
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold text-foreground">
+                Recent vehicles
               </h2>
+              <Button asChild variant="outline">
+                <Link href="/vehicles">View all</Link>
+              </Button>
             </div>
-            <ChargingTimeline events={eventHistory} />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {vehicles.slice(0, 3).map((vehicle) => (
+                <Link
+                  key={vehicle._id}
+                  href={`/vehicles/${generateSlug(vehicle.nickname, vehicle._id)}`}
+                  className="group"
+                >
+                  <div className="bg-card border border-border rounded-lg p-6 hover:shadow-lg transition-all duration-200 group-hover:border-ring">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">
+                          {vehicle.nickname}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {vehicle.model}
+                        </p>
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        className={`text-white ${getChargeStatusColor(vehicle.stateOfCharge || 0)}`}
+                      >
+                        {formatChargePercentage(vehicle.stateOfCharge || 0)}%
+                      </Badge>
+                    </div>
+
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden mb-4">
+                      <div
+                        className={`h-full transition-all duration-300 ${getChargeStatusColor(vehicle.stateOfCharge || 0)}`}
+                        style={{
+                          width: `${Math.min(vehicle.stateOfCharge || 0, 100)}%`,
+                        }}
+                      />
+                    </div>
+
+                    <p className="text-sm text-muted-foreground group-hover:text-primary transition-colors">
+                      {getChargeStatusText(vehicle.stateOfCharge || 0)} • {vehicle.batteryCapacity || 0} kWh
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="text-center py-12">
+            <Car className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-foreground mb-2">
+              No vehicles yet
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              Get started by adding your first electric vehicle to the fleet.
+            </p>
+            <Button asChild>
+              <Link href="/vehicles/add">
+                <Plus className="w-4 h-4 mr-2" />
+                Add your first vehicle
+              </Link>
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

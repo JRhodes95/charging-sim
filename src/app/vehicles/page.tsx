@@ -7,26 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Car, Battery, MapPin, Calendar } from "lucide-react";
 import { format } from "date-fns";
-import { generateSlug } from "@/lib/utils";
-
-const formatChargePercentage = (input: number) => {
-  return input.toFixed(1);
-};
-
-
-const getChargeStatusColor = (charge: number) => {
-  if (charge > 80) return "bg-green-500";
-  if (charge > 50) return "bg-yellow-500";
-  if (charge > 20) return "bg-orange-500";
-  return "bg-red-500";
-};
-
-const getChargeStatusText = (charge: number) => {
-  if (charge > 80) return "Excellent";
-  if (charge > 50) return "Good";
-  if (charge > 20) return "Low";
-  return "Critical";
-};
+import { generateSlug } from "@/lib/slugs";
+import { formatChargePercentage, getChargeStatusColor, getChargeStatusText } from "@/lib/charging";
 
 export default function VehiclesPage() {
   const vehicles = useQuery(api.vehicles.get);
@@ -51,13 +33,13 @@ export default function VehiclesPage() {
           <div className="text-center py-12">
             <Car className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              No Vehicles
+              No vehicles
             </h1>
             <p className="text-muted-foreground mb-6">
-              You haven't added any vehicles yet.
+              You haven&apos;t added any vehicles yet.
             </p>
             <Button asChild>
-              <Link href={`/vehicles/add`}>Add Vehicle</Link>
+              <Link href={`/vehicles/add`}>Add vehicle</Link>
             </Button>
           </div>
         </div>
@@ -72,7 +54,7 @@ export default function VehiclesPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold text-foreground mb-2">
-              Your Vehicles
+              Your vehicles
             </h1>
             <p className="text-muted-foreground text-lg">
               {vehicles.length} vehicle{vehicles.length !== 1 ? "s" : ""} in
@@ -80,7 +62,7 @@ export default function VehiclesPage() {
             </p>
           </div>
           <Button asChild>
-            <Link href={`/vehicles/add`}>Add Vehicle</Link>
+            <Link href={`/vehicles/add`}>Add vehicle</Link>
           </Button>
         </div>
 
@@ -112,7 +94,7 @@ export default function VehiclesPage() {
                     <div className="flex items-center gap-2">
                       <Battery className="w-4 h-4 text-muted-foreground" />
                       <span className="text-sm font-medium text-foreground">
-                        Battery Level
+                        Battery level
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
